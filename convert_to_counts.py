@@ -33,6 +33,7 @@ read_counts = alignment_meta['read_count'].loc[rpkm.index] # select only the val
 
 # Sanity check that the orderings are what we expect
 np.testing.assert_array_equal(rpkm.index, read_counts.index)
+rpkm.columns = rpkm.columns.astype('int')
 np.testing.assert_array_equal(rpkm.columns, gene_lengths.index)
 print("passed assertions")
 counts_mat = rpkm
