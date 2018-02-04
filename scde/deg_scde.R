@@ -9,15 +9,19 @@
 
 
 ## Poorman's command line argument parsing:
-args = commandArgs(trailingOnly=TRUE)
-if (length(args) < 4) {
-    stop("Missing args! arg1=data.dir, arg2=output.dir, arg3=n.cores, arg4=sample.size", call.=FALSE)
-} else {
-    data.dir <- args[1]
-    output.dir <- args[2]
-    n.cores <- strtoi(args[3])
-    sample.size <- strtoi(args[4])
-}
+# args = commandArgs(trailingOnly=TRUE)
+# if (length(args) < 4) {
+#     stop("Missing args! arg1=data.dir, arg2=output.dir, arg3=n.cores, arg4=sample.size", call.=FALSE)
+# } else {
+#     data.dir <- args[1]
+#     output.dir <- args[2]
+#     n.cores <- strtoi(args[3])
+#     sample.size <- strtoi(args[4])
+# }
+data.dir <- 'data_20180124'
+output.dir <- 'results_20180203'
+n.cores <- 2
+sample.size <- 75
 
 ## *********************
 ## *** I/O functions ***
@@ -171,6 +175,7 @@ LoadData <- function(data.dir) {
 
     ## Some preprocessing to get in the right form
     data.env$counts.mat <- data.matrix(data.env$counts.mat, rownames.force=TRUE)
+    data.env$counts.mat[is.na(data.env$counts.mat)] <- 0
     data.env$counts.mat <- t(data.env$counts.mat) ### Most DE tools expect rows to be genes, columns to be samples
 
     data.env$meta <- data.frame(labels = data.env$labels, accessions = data.env$accessions)
