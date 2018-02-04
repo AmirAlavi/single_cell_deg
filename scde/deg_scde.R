@@ -9,19 +9,19 @@
 
 
 ## Poorman's command line argument parsing:
-# args = commandArgs(trailingOnly=TRUE)
-# if (length(args) < 4) {
-#     stop("Missing args! arg1=data.dir, arg2=output.dir, arg3=n.cores, arg4=sample.size", call.=FALSE)
-# } else {
-#     data.dir <- args[1]
-#     output.dir <- args[2]
-#     n.cores <- strtoi(args[3])
-#     sample.size <- strtoi(args[4])
-# }
-data.dir <- 'data_20180124'
-output.dir <- 'results_20180203'
-n.cores <- 2
-sample.size <- 75
+args = commandArgs(trailingOnly=TRUE)
+if (length(args) < 4) {
+    stop("Missing args! arg1=data.dir, arg2=output.dir, arg3=n.cores, arg4=sample.size", call.=FALSE)
+} else {
+    data.dir <- args[1]
+    output.dir <- args[2]
+    n.cores <- strtoi(args[3])
+    sample.size <- strtoi(args[4])
+}
+## data.dir <- 'data_20180124'
+## output.dir <- 'results_20180203'
+## n.cores <- 2
+## sample.size <- 75
 
 ## *********************
 ## *** I/O functions ***
@@ -201,6 +201,7 @@ RunSCDE <- function(counts, groups, data.env) {
     ## Call SCDE functions to compute differential expression
     cat("\t", "\t", "Fitting error models...", "\n")
     t0 <- proc.time()
+    counts <- apply(counts,2,function(x) {storage.mode(x) <- 'integer'; x})
     scde.fitted.model <- knn.error.models(counts = counts, groups = groups, n.cores = data.env$n.cores, save.model.plots = F)
     print(proc.time() - t0)
     scde.prior <- scde.expression.prior(models = scde.fitted.model, counts = counts)
