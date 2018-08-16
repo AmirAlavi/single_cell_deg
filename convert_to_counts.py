@@ -43,19 +43,40 @@ counts_mat /= 1000000
 counts_mat = counts_mat.round()
 counts_mat = counts_mat.astype(int)
 print(counts_mat.shape)
+print("breaking up counts mat...")
+n_chunks = 10
+step_size = counts_mat.shape[0] // n_chunks
+for i in range(n_chunks):
+    start_idx = i * step_size
+    end_idx = (i + 1) * step_size
+    if i == n_chunks - 1:
+        end_idx = counts_mat.shape[0]
+    chunk = counts_mat[start_idx:end_idx]
+    print("chunk {}, {}".format(i, chunk.shape))
+    print("converting to r objects")
+    chunk = pandas2ri.py2ri(chunk)
+    print("converted")
+    r_object_name = "chunk_{}.mat".format(i)
+    r.assign(r_object_name, chunk)
+    print("assigned")
+    r("save({}, file='counts_{}_mat.gzip', compress=TRUE)".format(r_object_name, i))
+    print("saved")
+    print()
+
 # new_store = pd.HDFStore('selected_counts.h5')
 # new_store['counts'] = counts_mat
 # new_store['accessions'] = accessions
 # new_store['gene_symbols'] = gene_symbols
 # new_store['labels'] = labels
 # new_store.close()
-print("converting to r objects")
-counts_mat = pandas2ri.py2ri(counts_mat)
-print("converted")
-r.assign("counts.mat", counts_mat)
-print("assigned")
-r("save(counts.mat, file='counts_mat.gzip', compress=TRUE)")
-print("saved")
+
+# print("converting to r objects")
+# counts_mat = pandas2ri.py2ri(counts_mat)
+# print("converted")
+# r.assign("counts.mat", counts_mat)
+# print("assigned")
+# r("save(counts.mat, file='counts_mat.gzip', compress=TRUE)")
+# print("saved")
 
 print("converting to r objects")
 accessions = pandas2ri.py2ri(accessions)

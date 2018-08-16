@@ -94,7 +94,7 @@ CreateGeneFilter <- function(data.env, threshold = 50) {
     insert.idx <- 1
     for(type in levels(type.factor.vector)){
         cur.type.selection.vector <- type.factor.vector == type
-        cur.type.counts.mat <- data.env$counts.mat[, cur.type.selection.vector]
+        cur.type.counts.mat <- data.env$counts.mat[, cur.type.selection.vector, drop = FALSE]
         means <- rowMeans(cur.type.counts.mat)
         means.for.types[[insert.idx]] <- means
         insert.idx <- insert.idx + 1
@@ -168,17 +168,35 @@ LoadData <- function(data.dir) {
     cat("Looking in ", data.dir, "\n") ### Must have a data.dir variable in workspace!
 
     data.env <- new.env(parent = emptyenv())
-    load(paste(data.dir, "/", "counts_mat.gzip", sep=""), envir = data.env)   # counts.mat
+    ##load(paste(data.dir, "/", "counts_mat.gzip", sep=""), envir = data.env)   # counts.mat
+    for (i in 0:9) {
+        print(i)
+        loaded <- load(paste(data.dir, "/", "counts_", i, "_mat.gzip", sep=""), envir = data.env)   # counts.mat
+        print(ls(data.env))
+        if (i == 0) {
+            data.env$counts.mat <- data.matrix(eval(parse(text=paste("data.env$chunk_", i, ".mat", sep=""))), rownames.force=TRUE)
+        } else {
+            data.env$chunk <-data.matrix(eval(parse(text=paste("data.env$chunk_", i, ".mat", sep=""))), rownames.force=TRUE)
+            data.env$counts.mat <- rbind(data.env$counts.mat, data.env$chunk)
+        }
+        rm(list = loaded, envir=data.env)
+        print(dim(data.env$counts.mat))
+    }
+    print(ls(data.env))
+    rm(chunk, envir=data.env)
+    print(ls(data.env))
+    print(dim(data.env$counts.mat))
     load(paste(data.dir, "/", "accessions.gzip", sep=""), envir = data.env)   # accessions
     load(paste(data.dir, "/", "gene_symbols.gzip", sep=""), envir = data.env) # gene.symbols
     load(paste(data.dir, "/", "labels.gzip", sep=""), envir = data.env)       # labels
 
     ## Some preprocessing to get in the right form
-    data.env$counts.mat <- data.matrix(data.env$counts.mat, rownames.force=TRUE)
+    ## data.env$counts.mat <- data.matrix(data.env$counts.mat, rownames.force=TRUE)
     data.env$counts.mat[is.na(data.env$counts.mat)] <- 0
     data.env$counts.mat <- t(data.env$counts.mat) ### Most DE tools expect rows to be genes, columns to be samples
-
+    print(dim(data.env$counts.mat))
     data.env$meta <- data.frame(labels = data.env$labels, accessions = data.env$accessions)
+    print(str(data.env$meta))
     rm(accessions, envir = data.env)
     rm(labels, envir = data.env)
     print("Done loading data objects")
@@ -293,6 +311,12 @@ RunDegExperiments <- function(data.env, accessions.info.map) {
     cell.types.f <- factor(data.env$meta$labels)
     for (type in levels(cell.types.f)) {
         cat("Current type: ", type, "\n")
+        type.id <- strsplit(type, split=" ")[[1]][1]
+        ## Check if results have already been written for this cell type
+        if (length(list.files(pattern = paste(type.id, "_meta\\.csv$", sep=""))) >= 1 || length(list.files(pattern = paste(type.id, "_combined\\.csv$", sep=""))) >= 1) {
+            cat("Results from a previous run already exist for this cell type, skipping\n")
+            next
+        }
         cell.type.deg.results <- DegForCellType(type, data.env, accessions.info.map)
         if (length(cell.type.deg.results)) {
             meta.deg.results <- AnalyzeDegResults(cell.type.deg.results, data.env)
@@ -356,8 +380,11 @@ dir.create(output.dir, recursive = TRUE)
 setwd(output.dir)
 
 print("Filtering...")
+## Save background set of genes before filtering
+writeLines(data.env$gene.symbols, con = "background_genes_all.csv")
 gene.thresh.selection.vector <- CreateGeneFilter(data.env) 
 FilterGenes(data.env, gene.thresh.selection.vector)
+writeLines(data.env$gene.symbols, con = "background_genes_filtered.csv")
 
 cells.thresh.selection.vector <- CreateCellFilter(data.env)
 FilterCells(data.env, cells.thresh.selection.vector)
